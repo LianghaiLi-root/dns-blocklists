@@ -32,6 +32,9 @@ FILES = [
 # 自用 DNS 域名（保护，绝不进黑名单）
 PROTECTED = {"dns.google", "dns.alidns.com", "doh.alidns.com", "dns64.dns.google"}
 
+# 业务域名放行名单：上游列表若收录也必须剔除（此处即便被收录也不进黑名单）
+NEVER_BLOCK = {"api.bilibili.com"}
+
 # ||domain^ 或 ||domain$modifiers —— 必须整行匹配，拒绝 URL 路径规则（||domain/path）
 RE_WILDCARD = re.compile(r"^\|\|([a-z0-9.*-]+\.[a-z]{2,})\^?(?:\$[a-z0-9,_-]+)?$")
 
@@ -124,10 +127,11 @@ def merge():
     # 例外优先（同名剔除；子域级例外无法在 suffix 模型表达）
     wildcard -= exceptions
     exact -= exceptions
-    # 自用 DNS 保护
-    hit = (wildcard | exact) & PROTECTED
-    wildcard -= PROTECTED
-    exact -= PROTECTED
+    # 自用 DNS 保护 + 业务域名放行
+    guard = PROTECTED | NEVER_BLOCK
+    hit = (wildcard | exact) & guard
+    wildcard -= guard
+    exact -= guard
     return wildcard, exact, exceptions, stats, hit
 
 
